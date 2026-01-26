@@ -6,36 +6,29 @@ const AGENT_ID = 'b67b4257-b25b-4027-95c0-2474dc7260e0';
 
 let vapiInstance: any = null;
 
-// Dynamically import Vapi SDK
+// Dynamically load Vapi SDK from CDN only
 const loadVapiSDK = async (): Promise<any> => {
-  try {
-    // Try to import from npm package first (if installed)
-    const module = await import('@vapi-ai/web');
-    return module.default || module;
-  } catch (error) {
-    console.warn('Failed to load @vapi-ai/web from npm, trying CDN...', error);
+  return new Promise((resolve, reject) => {
+    // Check if already loaded
+    if ((window as any).Vapi) {
+      resolve((window as any).Vapi);
+      return;
+    }
 
-    // Fallback to CDN
-    return new Promise((resolve, reject) => {
+    // Load from CDN
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.0.2/dist/index.umd.js';
+    script.onload = () => {
       if ((window as any).Vapi) {
+        console.log('Vapi SDK loaded successfully from CDN');
         resolve((window as any).Vapi);
-        return;
+      } else {
+        reject(new Error('Vapi SDK failed to load from CDN'));
       }
-
-      const script = document.createElement('script');
-      script.src =
-      'https://cdn.jsdelivr.net/npm/@vapi-ai/web@2.0.2/dist/index.umd.js';
-      script.onload = () => {
-        if ((window as any).Vapi) {
-          resolve((window as any).Vapi);
-        } else {
-          reject(new Error('Vapi SDK failed to load from CDN'));
-        }
-      };
-      script.onerror = () => reject(new Error('Failed to load Vapi SDK script'));
-      document.head.appendChild(script);
-    });
-  }
+    };
+    script.onerror = () => reject(new Error('Failed to load Vapi SDK script'));
+    document.head.appendChild(script);
+  });
 };
 
 export const startVapiAgent = async (): Promise<void> => {
@@ -44,7 +37,7 @@ export const startVapiAgent = async (): Promise<void> => {
   console.log('Agent ID:', AGENT_ID);
 
   try {
-    // Load Vapi SDK
+    // Load Vapi SDK from CDN
     const Vapi = await loadVapiSDK();
     console.log('Vapi SDK loaded successfully');
 
